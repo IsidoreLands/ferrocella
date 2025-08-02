@@ -1,0 +1,10 @@
+# Core Simulation
+jax[cpu]
+
+# API & Web Server
+flask
+flask-socketio
+numpy # Common dependency
+
+# Testing & Visualization
+matplotlib
