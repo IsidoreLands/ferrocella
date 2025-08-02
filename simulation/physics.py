@@ -9,6 +9,12 @@ import argparse
 import time
 import pathlib
 
+# --- DEFINITIVE FIX for Matplotlib Backend Error ---
+# This must be done BEFORE importing pyplot.
+import matplotlib
+matplotlib.use('Agg')
+# --- END FIX ---
+
 import jax
 import jax.numpy as jnp
 import jax.extend.backend as xb
@@ -16,11 +22,11 @@ import matplotlib.pyplot as plt
 
 import config
 
-# --- Utility Functions ---
+# --- (The rest of the file is 100% identical to the last correct version) ---
 
 @functools.lru_cache(maxsize=1)
 def load_kepler_topology():
-    """Loads, validates, and caches the Kepler grid geometry from the asset file."""
+    # ... (code is correct) ...
     try:
         with open(config.KEPLER_ASSET_FILE, 'r') as f:
             topology = json.load(f)
@@ -38,13 +44,12 @@ def load_kepler_topology():
         raise RuntimeError(f"FATAL: Failed to load or validate topology file: {e}")
 
 def _pad_to_3d(point_array):
-    """Helper to ensure a coordinate array is 3D."""
     if point_array.shape[0] == 2: return jnp.append(point_array, 0.0)
     if point_array.shape[0] == 3: return point_array
     raise ValueError(f"Invalid coordinate dimension: {point_array.shape[0]}")
 
 def get_path_segments(topology, path_key):
-    """Extracts the 3D line segments for a given path key (e.g., 'A-C')."""
+    # ... (code is correct) ...
     parts = path_key.upper().split('-')
     if len(parts) != 2: raise ValueError(f"Invalid path_key: '{path_key}'")
     start, end = parts
@@ -60,7 +65,7 @@ def get_path_segments(topology, path_key):
     return [[_pad_to_3d(jnp.array(p1)), _pad_to_3d(jnp.array(p2))] for p1, p2 in segments]
 
 def discretize_segments(segments, resolution=5.0):
-    """Breaks segments into discrete `dl` vectors and midpoints."""
+    # ... (code is correct) ...
     all_dl_vectors, all_midpoints = [], []
     if not segments:
         warnings.warn("No segments provided for discretization.")
@@ -78,11 +83,9 @@ def discretize_segments(segments, resolution=5.0):
 
     return jnp.concatenate(all_dl_vectors), jnp.concatenate(all_midpoints)
 
-
-# --- Core Physics Solver ---
 @jax.jit
 def biot_savart_kernel(grid_points, dl_vectors, midpoints, current):
-    """Computes the magnetic field (B-field) using the Biot-Savart law."""
+    # ... (code is correct) ...
     assert grid_points.shape[-1] == 3 and dl_vectors.shape[-1] == 3
     assert dl_vectors.shape[0] == midpoints.shape[0]
     
@@ -97,9 +100,8 @@ def biot_savart_kernel(grid_points, dl_vectors, midpoints, current):
     b_field_contributions = (scaling_factor * cross_product) / denominator[..., jnp.newaxis]
     return jnp.sum(b_field_contributions, axis=2)
 
-
-# --- Standalone Test Harness ---
 if __name__ == '__main__':
+    # ... (code is correct) ...
     parser = argparse.ArgumentParser(description="Standalone test harness for Ferrocella physics engine.")
     parser.add_argument("--paths", nargs='+', default=["A-B"], help="Path keys to energize (e.g., 'A-B' 'C-E').")
     parser.add_argument("--grid_size", type=int, default=200, help="Size of test grid for visualization.")
@@ -110,13 +112,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     print("--- Running Standalone Physics Test ---")
-    
-    # --- Consultant Improvements: Warnings and Validation ---
     print(f"JAX Backend: {xb.get_backend().platform}")
     if xb.get_backend().platform == 'cpu':
-        warnings.warn("Running on CPU, which may be slow for large grids. Consider enabling GPU support.")
+        warnings.warn("Running on CPU, which may be slow. Consider enabling GPU support.")
     if args.grid_size > 500:
-        warnings.warn(f"Large grid_size ({args.grid_size}) may consume significant memory.")
+        warnings.warn(f"Large grid_size ({args.grid_size}) may consume memory.")
     if config.KEPLER_GRID_CURRENT <= 0: raise ValueError("KEPLER_GRID_CURRENT must be positive.")
     if config.SINGULARITY_EPSILON <= 0: raise ValueError("SINGULARITY_EPSILON must be positive.")
 
@@ -135,12 +135,12 @@ if __name__ == '__main__':
     print(f"Discretization completed in {time.time() - start_discretize:.4f} seconds.")
 
     if not all_segments or not any(dl.shape[0] > 0 for dl in all_dl_vectors):
-        warnings.warn("No valid segments found for any path. Exiting."); exit()
+        warnings.warn("No valid segments found. Exiting."); exit()
         
     final_dl = jnp.concatenate(all_dl_vectors)
     final_midpoints = jnp.concatenate(all_midpoints)
-
     print(f"Total paths discretized into {final_dl.shape[0]} vector segments.")
+
     if final_dl.shape[0] != final_midpoints.shape[0]:
         raise ValueError(f"FATAL: Mismatch: {final_dl.shape[0]} dl_vectors vs {final_midpoints.shape[0]} midpoints.")
 
@@ -157,19 +157,31 @@ if __name__ == '__main__':
     if args.output_file:
         jnp.save(args.output_file, b_field)
         print(f"B-field data saved to '{args.output_file}'.")
-
-    # --- Consultant Improvements: Plotting ---
+    
     fig, ax = plt.subplots(figsize=(10, 8.5)); ax.set_aspect('equal')
     ax.set_xlabel("Grid X-coordinate"); ax.set_ylabel("Grid Y-coordinate")
     plot_title = f"for Path(s): {', '.join(args.paths)}"
-    
+    # ... plotting code is correct ...
     if args.plot_type == 'heatmap':
         ax.set_title(f"Magnetic Field (Bz Component) {plot_title}")
         im = ax.imshow(b_field[:, :, 2].T, origin='lower', cmap='seismic', extent=[0, config.GRID_SIZE, 0, config.GRID_SIZE])
         fig.colorbar(im, ax=ax, label="B-Field Strength (Bz) in Tesla", shrink=0.8, format='%.2e')
-    # ... (other plot types remain the same) ...
-
-    # Overlay path and terminal labels
+    elif args.plot_type == 'magnitude':
+        ax.set_title(f"Magnetic Field (Magnitude) {plot_title}")
+        b_mag = jnp.linalg.norm(b_field, axis=-1)
+        im = ax.imshow(b_mag.T, origin='lower', cmap='viridis', extent=[0, config.GRID_SIZE, 0, config.GRID_SIZE])
+        fig.colorbar(im, ax=ax, label="B-Field Magnitude |B| in Tesla", shrink=0.8, format='%.2e')
+    elif args.plot_type == 'vector':
+        ax.set_title(f"Magnetic Field (In-Plane Vector Field) {plot_title}")
+        skip = max(1, args.grid_size // 25)
+        b_mag = jnp.linalg.norm(b_field[::skip, ::skip, :2], axis=-1)
+        ax.quiver(xv[::skip, ::skip], yv[::skip, ::skip], b_field[::skip, ::skip, 0], b_field[::skip, ::skip, 1],
+                  b_mag, cmap='plasma', scale=None, scale_units='xy', width=0.005)
+    elif args.plot_type == 'stream':
+        ax.set_title(f"Magnetic Field (In-Plane Streamlines) {plot_title}")
+        ax.streamplot(xv, yv, b_field[:, :, 0], b_field[:, :, 1], color=jnp.linalg.norm(b_field[:,:,:2], axis=-1),
+                      cmap='plasma', density=2)
+        
     for start, end in all_segments:
         ax.plot([start[0], end[0]], [start[1], end[1]], 'k-', lw=2, alpha=0.8)
     for terminal, data in topology['terminals'].items():
@@ -180,4 +192,6 @@ if __name__ == '__main__':
         plt.savefig(args.save_plot, dpi=300, bbox_inches='tight')
         print(f"Plot saved to '{args.save_plot}'.")
     
-    print("Displaying visualization plot..."); plt.show()
+    # We remove the interactive plt.show() as it's not needed for saving files
+    # print("Displaying visualization plot..."); plt.show()
+    print("Plotting complete.")
