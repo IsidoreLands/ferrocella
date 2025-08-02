@@ -17,13 +17,15 @@
     "A-B": {
       "description": "Path between Breaker A and Breaker B",
       "segments": [
-        
+        [[0, 0, 0], [390, 0, 0]],
+        [[390, 0, 0], [780, 0, 0]]
       ]
     },
-    "C-D": {
-        "description": "Path between Breaker C and Breaker D",
+    "C-E": {
+        "description": "Path between Breaker C and Breaker E",
         "segments": [
-            
+          [[0, 1000, 0], [110, 1000, 0]],
+          [[110, 1000, 0], [220, 1000, 0]]
         ]
     }
   }
