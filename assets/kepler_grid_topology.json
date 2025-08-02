@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "name": "Mirrored Kepler Control Grid",
+    "source_file": "input_file_0.png",
+    "units": "grid_units",
+    "grid_size": 1000
+  },
+  "terminals": {
+    "A": { "coords": [0, 0] },
+    "B": { "coords": [780, 0] },
+    "C": { "coords": [0, 1000] },
+    "D": { "coords": [1000, 1000] },
+    "E": { "coords": [220, 1000] },
+    "F": { "coords": [1000, 0] }
+  },
+  "paths": {
+    "A-B": {
+      "description": "Path between Breaker A and Breaker B",
+      "segments": [
+        
+      ]
+    },
+    "C-D": {
+        "description": "Path between Breaker C and Breaker D",
+        "segments": [
+            
+        ]
+    }
+  }
+}

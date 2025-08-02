@@ -1,0 +1,26 @@
+# FerroCellSim Project Plan
+
+This document outlines the phased development plan for the FerroCellSim project, a standalone, high-fidelity, open-source ferrocell simulator.
+
+### Phase 1: Foundation & Core Electromagnetism (3-5 days)
+**Goal:** Establish a static, but accurate, magnetic simulation.
+- [x] Day 1: Set up repository, configuration (`config.py`), and asset files (`kepler_grid_topology.json`).
+- [ ] Days 2-4: Implement the core electromagnetic physics solver using JAX. This will calculate the 3D B-field from current flowing through the Kepler Grid paths (Biot-Savart Law).
+- [ ] Day 5: Create a basic Flask API endpoint to test the B-field solver by returning a static image of the field for a given energized path.
+
+### Phase 2: Dynamics & Thermal Effects (5-7 days)
+**Goal:** Bring the simulation to life with fluid motion and thermo-magnetic effects.
+- [ ] Days 6-7: Implement the thermal layer in JAX. This includes heating from LEDs, thermal diffusion, and cooling. Create an API endpoint to control LED state.
+- [ ] Days 8-12: Implement a simplified 2D Navier-Stokes fluid solver in JAX. This includes viscosity, pressure, and the magnetic body force. Focus on visual plausibility over scientific accuracy. Tune for stability.
+
+### Phase 3: Real-Time API & Live Viewer (3-5 days)
+**Goal:** Transform the physics engine into an observable, real-time service.
+- [ ] Days 13-14: Assemble the `MultiphysicsFerrocell` class that encapsulates all physics components. Create the main `update_timestep` loop.
+- [ ] Day 15: Upgrade the Flask server to use Flask-SocketIO for real-time, bidirectional communication.
+- [ ] Days 16-17: Build the frontend HTML and JavaScript to connect to the WebSocket and render the live simulation grid onto an HTML5 canvas.
+
+### Phase 4: Deployment & Documentation (2-3 days)
+**Goal:** Package the simulation for easy use and community contribution.
+- [ ] Day 18: Create a `Dockerfile` to containerize the application for reproducible deployment on services like Hugging Face Spaces.
+- [ ] Day 19: Deploy the project to a public Hugging Face Space and perform end-to-end testing.
+- [ ] Day 20: Write a comprehensive `README.md` with instructions, API documentation, and examples to encourage community adoption.
