@@ -24,11 +24,14 @@ KEPLER_GRID_CURRENT = 1.0 # The electric current (Amperes). Tunable.
 # --- LED Array & Thermal Parameters ---
 LED_BRIGHTNESS = 150  # Default brightness (0-255).
 ABSORPTION_COEFFICIENTS = {
-    'red': 0.8, 'green': 0.4, 'blue': 0.2,
-    'white': 0.5, 'black': 0.0
+    'blue': 0.9,
+    'green': 0.8,
+    'red': 0.2,
+    'white': 0.6,  # Approximate average
+    'black': 0.0
 }
-TEMP_SUSCEPTIBILITY_FACTOR = -0.15 # Tunable.
-THERMAL_DIFFUSIVITY = 0.1     # How quickly heat spreads through the fluid.
+TEMP_SUSCEPTIBILITY_FACTOR = -0.25 # Tunable.
+THERMAL_DIFFUSIVITY = 0.15     # How quickly heat spreads through the fluid.
 COOLING_RATE = 0.02           # How quickly the fluid loses heat to the environment.
 
 # --- API & Server Parameters ---
