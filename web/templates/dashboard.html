@@ -1,19 +1,47 @@
-<!-- web/templates/dashboard.html -->
+<!-- web/templates/dashboard.html (Upgraded with LED controls) -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Ferrocella Particle Viewer</title>
+    <meta charset="UTF-8">
+    <title>Ferrocella Live Simulation</title>
     <style>
-        body { margin: 0; background-color: #000; color: #fff; font-family: monospace; }
-        canvas { display: block; }
-        #info { position: absolute; top: 10px; width: 100%; text-align: center; }
+        body { font-family: monospace; background-color: #111; color: #eee; text-align: center; margin: 0; }
+        h1, p { color: #0f0; }
+        canvas { background-color: #000; border: 1px solid #0f0; image-rendering: pixelated; width: 80vmin; height: 80vmin; }
+        .controls, .stats { margin: 1em; }
+        button { background: #333; color: white; border: 1px solid #555; padding: 10px; margin: 2px; font-family: monospace; cursor: pointer; }
+        #stats_display { color: #ff0; }
+        /* --- Style buttons by color --- */
+        .red-btn { background-color: #a00; border-color: #f00; }
+        .blue-btn { background-color: #00a; border-color: #00f; }
+        .green-btn { background-color: #0a0; border-color: #0f0; }
     </style>
 </head>
 <body>
-    <div id="info">Ferrocella Particle Visualization</div>
-    <script type="importmap">
-        { "imports": { "three": "https://unpkg.com/three@0.161.0/build/three.module.js" } }
-    </script>
-    <script type="module" src="/static/dashboard.js"></script>
+    <h1>Ferrocella Real-Time Physics Engine</h1>
+    <canvas id="ferrocell-canvas"></canvas>
+    
+    <div class="controls">
+        <p>KEPLER GRID CONTROL</p>
+        <button class="green-btn" onclick="setPaths(['A-B'])">Activate A-B</button>
+        <button class="green-btn" onclick="setPaths(['C-E'])">Activate C-E</button>
+        <button class="green-btn" onclick="setPaths(['A-B', 'C-E'])">Activate Both</button>
+        <button onclick="setPaths([])">Deactivate Grid</button>
+    </div>
+    
+    <div class="controls">
+        <p>LED ARRAY CONTROL (THERMAL)</p>
+        <button class="red-btn" onclick="setLEDs('red', 255)">Red Stabilize</button>
+        <button class="blue-btn" onclick="setLEDs('blue', 255)">Blue Agitate</button>
+        <button onclick="setLEDs('white', 128)">White Neutral</button>
+        <button onclick="setLEDs('black', 0)">Lights Off</button>
+    </div>
+
+    <div class="stats">
+        Server Stats: <span id="stats_display">Connecting...</span>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="/static/main.js"></script>
 </body>
 </html>
