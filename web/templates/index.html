@@ -1,0 +1,33 @@
+<!-- web/templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ferrocella Live Simulation</title>
+    <style>
+        body { font-family: monospace; background-color: #111; color: #eee; text-align: center; margin: 0; }
+        h1 { color: #0f0; }
+        canvas { background-color: #000; border: 1px solid #0f0; image-rendering: pixelated; width: 80vmin; height: 80vmin; }
+        .controls, .stats { margin: 1em; }
+        button { background: #0f0; border: none; padding: 10px; font-family: monospace; cursor: pointer; }
+        #stats_display { color: #ff0; }
+    </style>
+</head>
+<body>
+    <h1>Ferrocella Real-Time Physics Engine</h1>
+    <canvas id="ferrocell-canvas"></canvas>
+    <div class="controls">
+        <p>Control the simulation by activating Kepler paths:</p>
+        <button onclick="setPaths(['A-B'])">Activate A-B</button>
+        <button onclick="setPaths(['C-E'])">Activate C-E</button>
+        <button onclick="setPaths(['A-B', 'C-E'])">Activate Both</button>
+        <button onclick="setPaths([])">Deactivate All</button>
+    </div>
+    <div class="stats">
+        Server Stats: <span id="stats_display">Connecting...</span>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="/static/main.js"></script>
+</body>
+</html>

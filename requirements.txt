@@ -4,7 +4,8 @@ jax[cpu]
 # API & Web Server
 flask
 flask-socketio
-numpy # Common dependency
+numpy
+gunicorn # For production
 
 # Testing & Visualization
 matplotlib
