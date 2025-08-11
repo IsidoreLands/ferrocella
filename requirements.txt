@@ -9,3 +9,4 @@ gunicorn # For production
 
 # Testing & Visualization
 matplotlib
+opencv-python
