@@ -6,29 +6,45 @@ import sys
 from tabulate import tabulate
 
 def load_equations(file_path):
-    with open(file_path, 'r') as f:
-        return json.load(f)
+    try:
+        with open(file_path, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error loading equations: {e}")
+        sys.exit(1)
 
 def parse_input_json(file_path):
     try:
         with open(file_path, 'r') as f:
             data = json.load(f)
-        return data['variables']
+        variables = data.get('variables', [])
+        for var in variables:
+            if 'expression' in var:
+                try:
+                    var['value'] = sp.sympify(var['expression'], locals={'t': sp.Symbol('t'), 'log': sp.log})
+                except Exception as e:
+                    print(f"Invalid expression for {var['name']}: {e}")
+                    var['value'] = None
+        return variables
     except Exception as e:
         print(f"Error reading JSON: {e}")
         return None
 
 def parse_command_line_input():
     variables = []
-    print("Enter variables (format: name=value unit, e.g., I=0.5 A). Type 'done' to finish:")
+    print("Enter variables (format: name=value unit [expression], e.g., I=0.5 A or I=0.5*t A expression). Type 'done' to finish:")
     while True:
         inp = input("> ")
         if inp.lower() == 'done':
             break
         try:
-            name, rest = inp.split('=', 1)
-            value, unit = rest.strip().split(' ', 1)
-            variables.append({'name': name.strip(), 'value': float(value), 'unit': unit.strip()})
+            parts = inp.strip().split()
+            name = parts[0].split('=')[0]
+            value_part = parts[0].split('=')[1]
+            unit = parts[1]
+            expression = parts[2] if len(parts) > 2 and parts[2] == 'expression' else None
+            value = sp.sympify(value_part, locals={'t': sp.Symbol('t'), 'log': sp.log}) if expression else float(value_part)
+            variables.append({'name': name, 'value': value, 'unit': unit})
         except Exception as e:
             print(f"Invalid input: {e}. Try again.")
     return variables
@@ -36,18 +52,22 @@ def parse_command_line_input():
 def validate_units(variables, equation):
     required_units = {var: info['unit'] for var, info in equation['variables'].items()}
     input_units = {var['name']: var['unit'] for var in variables}
+    missing = []
+    mismatches = []
     for var in required_units:
         if var not in input_units and 'value' not in equation['variables'][var]:
-            return False, f"Missing variable: {var} (unit: {required_units[var]})"
-        if var in input_units and input_units[var] != required_units[var]:
-            return False, f"Unit mismatch for {var}: expected {required_units[var]}, got {input_units[var]}"
+            missing.append(f"{var} (unit: {required_units[var]})")
+        elif var in input_units and input_units[var] != required_units[var]:
+            mismatches.append(f"{var}: expected {required_units[var]}, got {input_units[var]}")
+    if missing or mismatches:
+        return False, f"Missing: {', '.join(missing)}\nMismatches: {', '.join(mismatches)}"
     return True, ""
 
 def compute_equation(equation, variables):
     try:
         # Define symbols
         symbols = {var: sp.Symbol(var) for var in equation['variables']}
-        expr = sp.sympify(equation['formula'], locals=symbols)
+        expr = sp.sympify(equation['formula'], locals={**symbols, 'mean': np.mean, 'abs': abs, 'exp': sp.exp, 'log': sp.log})
         
         # Substitute known values
         subs_dict = {}
@@ -65,20 +85,23 @@ def compute_equation(equation, variables):
         
         # Compute result
         result = expr.subs(subs_dict)
-        if result.is_number:
-            result = float(result)
-        else:
-            return None, "Result is not a number (complex or symbolic)"
+        if isinstance(result, sp.Expr) and result.free_symbols:
+            return None, f"Cannot compute: unresolved symbols {result.free_symbols}"
+        result = float(result) if result.is_number else result
         
-        # Show derivation
-        print("\nDerivation:")
-        print(f"Formula: {equation['formula']}")
-        print("Substituted values:")
+        # Compute derivatives if time-dependent
+        derivation = [f"Formula: {equation['formula']}"]
+        derivation.append("Substituted values:")
         for var, val in subs_dict.items():
-            print(f"  {var} = {val} {equation['variables'].get(str(var), {}).get('unit', '')}")
-        print(f"Result: {result} {list(equation['variables'].values())[0]['unit']}")
+            derivation.append(f"  {var} = {val} {equation['variables'].get(str(var), {}).get('unit', '')}")
+        if isinstance(result, sp.Expr) and sp.Symbol('t') in result.free_symbols:
+            deriv = sp.diff(result, sp.Symbol('t'))
+            derivation.append(f"Derivative (d/dt): {deriv}")
+            if deriv.is_number:
+                derivation.append(f"Evaluated derivative: {float(deriv)}")
+        derivation.append(f"Result: {result} {list(equation['variables'].values())[0]['unit']}")
         
-        return result, None
+        return result, '\n'.join(derivation)
     except Exception as e:
         return None, f"Calculation error: {e}"
 
@@ -89,7 +112,7 @@ def main():
     args = parser.parse_args()
 
     # Load equations
-    eq_file = 'simulation/standard_equations.json' if args.mode == 'standard' else 'simulation/aether_equations.json'
+    eq_file = f'simulation/{args.mode}_equations.json'
     equations = load_equations(eq_file)
 
     # Get variables
@@ -105,7 +128,11 @@ def main():
 
     # Display input variables
     print("\nInput Variables:")
-    print(tabulate(variables, headers=['name', 'value', 'unit'], tablefmt='grid'))
+    print(tabulate(
+        [[v['name'], v['value'], v['unit']] for v in variables],
+        headers=['Name', 'Value', 'Unit'],
+        tablefmt='grid'
+    ))
 
     # Select equations
     print("\nAvailable Equations:")
@@ -130,11 +157,11 @@ def main():
         if not valid:
             print(f"Error: {error}")
             continue
-        result, error = compute_equation(eq, variables)
-        if error:
-            print(f"Error: {error}")
+        result, derivation = compute_equation(eq, variables)
+        if derivation:
+            print(f"Derivation:\n{derivation}")
         else:
-            print(f"Result: {result} {list(eq['variables'].values())[0]['unit']}")
+            print(f"Error: {error}")
 
 if __name__ == "__main__":
     main()
