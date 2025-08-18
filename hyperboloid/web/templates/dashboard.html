@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ferrocella Toroid Dashboard</title>
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <style>
+        canvas { border: 1px solid black; }
+        .readings { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Toroid Field Visualization</h1>
+    <canvas id="fieldCanvas" width="400" height="400"></canvas>
+    <div class="readings">
+        <h2>Sensor Readings</h2>
+        <p id="sideA"></p>
+        <p id="sideB"></p>
+    </div>
+    <script>
+        const socket = io();
+        socket.on('force_field_update', data => {
+            const canvas = document.getElementById('fieldCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Simple visualization (extend with Three.js for 3D)
+            const field = data.field;
+            const size = Math.sqrt(field.length / 2);
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    const idx = (i * size + j) * 2;
+                    ctx.fillStyle = `rgb(${Math.abs(field[idx]) * 255}, ${Math.abs(field[idx + 1]) * 255}, 0)`;
+                    ctx.fillRect(j * (canvas.width / size), i * (canvas.height / size), canvas.width / size, canvas.height / size);
+                }
+            }
+        });
+        socket.on('readings_update', data => {
+            document.getElementById(`side${data.side}`).innerText = `Side ${data.side}: ${JSON.stringify(data.readings)}`;
+        });
+        socket.on('server_error', data => {
+            console.error('Server error:', data.message);
+        });
+    </script>
+</body>
+</html>

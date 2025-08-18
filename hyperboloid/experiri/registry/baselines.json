@@ -1,0 +1,12 @@
+{
+  "A": {
+    "hall": 0.0,
+    "lcr": {"inductance": 0.0, "capacitance": 0.0, "resistance": 0.0},
+    "laser": 0.0
+  },
+  "B": {
+    "hall": 0.0,
+    "lcr": {"inductance": 0.0, "capacitance": 0.0, "resistance": 0.0},
+    "laser": 0.0
+  }
+}

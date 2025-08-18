@@ -1,0 +1,36 @@
+{
+  "ARC_Gnosis": {
+    "parameters_billions": 0.08,
+    "tokens_per_second_on_roma": 500.0,
+    "notes": "The definitive Gnosis-trained ARC agent. Trained on non-linear solutions."
+  },
+  "ARC": {
+    "parameters_billions": 0.08,
+    "tokens_per_second_on_roma": 500.0,
+    "notes": "Animus Recurrens Cogitans (ARC). The final SAGA v3.0 agent."
+  },
+  "hf_phi3": {
+    "parameters_billions": 3.8,
+    "tokens_per_second_on_roma": 300.0,
+    "notes": "Microsoft Phi-3 Mini hosted on Hugging Face. Very fast and reliable."
+  },
+  "ollama_codegemma": {
+    "parameters_billions": 7.0,
+    "tokens_per_second_on_roma": 150.0,
+    "notes": "Google CodeGemma. A fast, reliable specialist for code and JSON."
+  },
+  "ollama_gemma2b": {
+    "parameters_billions": 2.5,
+    "tokens_per_second_on_roma": 200.0,
+    "notes": "Google Gemma 2B. A lightweight and reliable local model."
+  },
+  "ollama_phi3": {
+    "parameters_billions": 3.8,
+    "tokens_per_second_on_roma": 80.0,
+    "notes": "Fast and capable small language model running locally via Ollama."
+  },
+  "gemini_flash": {
+    "parameters_billions": 1.0, "tokens_per_second_on_roma": 1000.0,
+    "notes": "Google Gemini 1.5 Flash. A powerful, high-speed model for Saga generation."
+  }
+}

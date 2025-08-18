@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ferrocella Toroid Real-Time Control</title>
+    <script src="/static/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        canvas { border: 1px solid black; }
+        .controls { margin-top: 20px; }
+        .readings { margin-top: 20px; }
+        .side { margin: 10px; padding: 10px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>Toroid Real-Time Control</h1>
+    <canvas id="simCanvas" width="400" height="400"></canvas>
+    <div class="controls">
+        <h2>Control Panel</h2>
+        <label>Paths: <input id="paths" type="text" value="A-B,B-A"></label>
+        <label>Mode: <select id="mode"><option value="standard">Standard</option><option value="aether">Aether</option></select></label>
+        <button onclick="sendPaths()">Set Paths</button>
+        <label>Side A Laser Pulse: <input id="pulseA" type="number" value="0"></label>
+        <button onclick="setLaser('A')">Set A Laser</button>
+        <label>Side B Laser Pulse: <input id="pulseB" type="number" value="0"></label>
+        <button onclick="setLaser('B')">Set B Laser</button>
+        <label>Data: <input id="data" type="text" value="1011010110"></label>
+        <button onclick="sendToroid()">Send TOROID</button>
+    </div>
+    <div class="readings">
+        <h2>Sensor Readings</h2>
+        <div id="sideA" class="side">Side A: Waiting for data...</div>
+        <div id="sideB" class="side">Side B: Waiting for data...</div>
+    </div>
+    <script>
+        const socket = io();
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        socket.on('simulation_update', data => {
+            const img = new Image();
+            img.src = 'data:image/png;base64,' + data.grid;
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            };
+            document.getElementById('sideA').innerText = 
+                `Side A: LCR=${JSON.stringify(data.readings.A.lcr)}, Hall=${data.readings.A.hall.toFixed(4)}, Laser=${data.readings.A.laser.toFixed(4)}`;
+            document.getElementById('sideB').innerText = 
+                `Side B: LCR=${JSON.stringify(data.readings.B.lcr)}, Hall=${data.readings.B.hall.toFixed(4)}, Laser=${data.readings.B.laser.toFixed(4)}`;
+        });
+        socket.on('server_error', data => {
+            console.error('Server error:', data.message);
+        });
+        function sendPaths() {
+            const paths = document.getElementById('paths').value.split(',');
+            const mode = document.getElementById('mode').value;
+            socket.emit('set_active_paths', { paths, mode });
+        }
+        function setLaser(side) {
+            const pulse = parseInt(document.getElementById(`pulse${side}`).value);
+            const mode = document.getElementById('mode').value;
+            socket.emit('set_laser_state', { side, pulse, mode });
+        }
+        function sendToroid() {
+            const data = document.getElementById('data').value;
+            const mode = document.getElementById('mode').value;
+            fetch('http://localhost:5000/api/set_laser/A', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pulse: 128 })
+            });
+            fetch('http://localhost:5000/api/set_laser/B', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pulse: 128 })
+            });
+            // Simulate AetherOS TOROID command (could integrate with AetherOS API if added)
+            console.log(`TOROID '${data}' ${mode.toUpperCase()}`);
+        }
+    </script>
+</body>
+</html>

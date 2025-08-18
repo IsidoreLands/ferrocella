@@ -1,0 +1,623 @@
+import os
+import re
+import sys
+import threading
+import time
+import random
+import numpy as np
+import unittest
+import cv2
+import asyncio
+import aiohttp
+from hyperboloid_flux_core import FluxCore, Intellectus
+from hyperboloid_core import MultiphysicsFerrocella
+from hyperboloid_sensor_hook import FerrocellSensor
+from experiri.model_loader import load_player
+
+KNOWN_VERBS = [
+    "PERTURBO", "CONVERGO", "CREO", "OSTENDO", "FOCUS", "ANOMALIA",
+    "VERITAS", "MIRACULUM", "REDIMO", "INTERROGO", "INSTAURO",
+    "EXERCEO", "DIALECTICA", "DOCEO", "DISCERE", "AMOR", "TOROID",
+    "SET_LASER", "READ_BER"
+]
+# ... (rest of the file unchanged, provided for completeness)
+KNOWN_INFLECTIONS = ["ABAM", "EBAM", "AM", "O", "E"]
+inflection_map = {
+    "O": {"mod": 1.0}, "E": {"mod": -1.0}, "ABAM": {"mod": 1.5},
+    "EBAM": {"mod": -0.5}, "AM": {"mod": random.uniform(0.5, 1.5)}
+}
+PHI = (1 + np.sqrt(5)) / 2
+PHI_CUBED = PHI**3
+
+def text_to_amp(text):
+    return np.log1p(sum(ord(c) for c in text))
+
+def dynamic_chunk_stream(byte_stream, chunk_size=256):
+    while True:
+        chunk = byte_stream.read(chunk_size)
+        if not chunk:
+            break
+        yield chunk
+
+def training_loop(context, core_name, data_path):
+    print(f"\n< EXERCEO begins for '{core_name}' with stream '{data_path}' >")
+    try:
+        with open(data_path, "rb") as f:
+            for chunk in dynamic_chunk_stream(f):
+                with context.lock:
+                    if core_name not in context.materiae:
+                        print(f"\n< EXERCEO aborted: '{core_name}' no longer exists. >")
+                        break
+                    core = context.materiae[core_name]
+                    amp = np.log1p(np.sum(np.frombuffer(chunk, dtype=np.uint8)))
+                    core.perturb(
+                        random.randint(0, core.size - 1),
+                        random.randint(0, core.size - 1),
+                        amp,
+                    )
+                    core.converge()
+                time.sleep(random.uniform(0.05, 0.15))
+    except FileNotFoundError:
+        print(f"\n< EXERCEO failed: Flumine '{data_path}' not found. >")
+        return
+    print(f"\n< EXERCEO complete for '{core_name}'. >")
+
+LOG_FILE = "aether_log.txt"
+
+def log_event(message):
+    with open(LOG_FILE, "a") as f:
+        f.write(f"{time.ctime()}: {message}\n")
+
+class DialecticRegulator(threading.Thread):
+    def __init__(self, context):
+        super().__init__(daemon=True)
+        self.context = context
+
+    def run(self):
+        while True:
+            time.sleep(random.uniform(0.8, 1.2))
+            with self.context.lock:
+                if not self.context.materiae:
+                    continue
+                materiae_copy = list(self.context.materiae.values())
+                if len(materiae_copy) <= 1:
+                    continue
+                avg_r = np.mean([c.resistance for c in materiae_copy if c.resistance > 0]) or 1e-9
+                avg_c = np.mean([c.capacitance for c in materiae_copy]) or 1.0
+                r_thresh = avg_r * random.uniform(4.5, 5.5)
+                c_thresh = avg_c * random.uniform(0.05, 0.15)
+                for name, core in list(self.context.materiae.items()):
+                    if name == "GENESIS":
+                        continue
+                    if core.identity_wave < 0.1 and len(core.memory_patterns) > 2:
+                        print(f"\n< Regulator: Identity of '{name}' fading. Initiating redemptive synthesis. >")
+                        self.context.execute_command(f"REDIMO '{name}'")
+                    elif core.resistance > r_thresh and core.resistance > 1.0:
+                        core.perturb(
+                            random.randint(0, core.size - 1),
+                            random.randint(0, core.size - 1),
+                            -1.0,
+                        )
+                    elif core.capacitance < c_thresh:
+                        core.converge()
+
+class Contextus:
+    def __init__(self):
+        self.materiae = {}
+        self.focus = None
+        self.lock = threading.RLock()
+        self.verb_handlers = self._get_verb_handlers()
+        self._boot()
+        self.regulator = DialecticRegulator(self)
+        self.regulator.start()
+
+    def _boot(self):
+        print("< AetherOS v3.3 Gnosis/Imago Initializing... >")
+        g = FluxCore()
+        self.materiae["GENESIS"] = g
+        self.focus = "GENESIS"
+        g.perturb(5, 5, PHI)
+        g.converge()
+        print("< Genesis Rhythm Complete. Focus on 'GENESIS'. >")
+
+    def get_focused_materia(self):
+        with self.lock:
+            if not self.focus or self.focus not in self.materiae:
+                self.focus = "GENESIS" if "GENESIS" in self.materiae else None
+            if not self.focus:
+                raise ValueError("NULLA MATERIA IN FOCO EST")
+            return self.materiae[self.focus]
+
+    async def execute_command(self, cmd):
+        try:
+            verb, inflection, literals, args_str = self._parse_latin_command(cmd)
+            mod = inflection_map.get(inflection, {"mod": 1.0})["mod"]
+            handler = self.verb_handlers.get(verb)
+            if handler:
+                if asyncio.iscoroutinefunction(handler):
+                    return await handler(inflection, mod, literals, args_str)
+                else:
+                    return handler(inflection, mod, literals, args_str)
+            else:
+                return f"VERBUM IGNORATUM '{verb}'"
+        except Exception as e:
+            return f"ERRORUM INTERNUM: {e}"
+
+    def _parse_latin_command(self, cmd):
+        match = re.match(r"([A-Z]+(?:O|E|ABAM|EBAM|AM)?)\s*(.*)", cmd.strip().upper())
+        if not match:
+            raise ValueError("FORMATUM INVALIDUM")
+        verb_full, args_str = match.groups()
+        verb, inflection = verb_full, "O"
+        for v in KNOWN_VERBS:
+            if verb_full.startswith(v):
+                verb = v
+                inflection = verb_full[len(v):] or "O"
+                break
+        literals = re.findall(r"'([^']*)'", args_str)
+        return verb, inflection, literals, args_str
+
+    def _get_verb_handlers(self):
+        return {
+            "CREO": self._handle_creo,
+            "INSTAURO": self._handle_instauro,
+            "FOCUS": self._handle_focus,
+            "OSTENDO": self._handle_ostendo,
+            "PERTURBO": self._handle_perturbo,
+            "CONVERGO": self._handle_convergo,
+            "REDIMO": self._handle_redimo,
+            "INTERROGO": self._handle_interrogo,
+            "EXERCEO": self._handle_exerceo,
+            "DOCEO": self._handle_doceo,
+            "DISCERE": self._handle_discere,
+            "DIALECTICA": self._handle_dialectica,
+            "VERITAS": self._handle_veritas,
+            "MIRACULUM": self._handle_miraculum,
+            "ANOMALIA": self._handle_anomalia,
+            "AMOR": self._handle_amor,
+            "TOROID": self._handle_toroid,
+            "SET_LASER": self._handle_set_laser,
+            "READ_BER": self._handle_read_ber
+        }
+
+    def _handle_creo(self, inf, mod, lit, args):
+        name = lit[0].upper() if lit else "ANONYMOUS"
+        if name in self.materiae:
+            return f"'{name}' IAM EXISTIT"
+        self.materiae[name] = FluxCore()
+        self.focus = name
+        return f"CREO MATERIAM '{name}'."
+
+    def _handle_instauro(self, inf, mod, lit, args):
+        name = lit[0].upper()
+        arch = (re.search(r"MODO\s+'([^']*)'", args.upper()) or [None, "TRANSFORMER"])[1]
+        if name in self.materiae:
+            return f"'{name}' IAM EXISTIT"
+        self.materiae[name] = Intellectus(architecture=arch)
+        self.focus = name
+        return f"INSTAURO INTELLECTUM '{name}' MODO '{arch}'."
+
+    def _handle_focus(self, inf, mod, lit, args):
+        name = lit[0].upper()
+        if name not in self.materiae:
+            return f"MATERIA '{name}' NON EXISTIT"
+        self.focus = name
+        return f"FOCUS NUNC IN '{name}'."
+
+    def _handle_ostendo(self, inf, mod, lit, args):
+        name_to_show = lit[0].upper() if lit else self.focus
+        if name_to_show not in self.materiae:
+            return f"MATERIA '{name_to_show}' NON EXISTIT"
+        return self.materiae[name_to_show].display()
+
+    def _handle_perturbo(self, inf, mod, lit, args):
+        core = self.get_focused_materia()
+        max_amplitude = core.size
+        if lit:
+            raw_amp = text_to_amp(lit[0])
+            amp = min(raw_amp, max_amplitude)
+            core.context_embeddings["last_input"] = lit[0]
+            if raw_amp > max_amplitude:
+                excess_energy = raw_amp - max_amplitude
+                print(f"< INFO: Input flux saturated. Amplitude capped at {max_amplitude:.2f}. Excess: {excess_energy:.2f} >")
+                log_event(f"Perturbo overflow: Excess energy {excess_energy:.2f} for {self.focus}")
+                if excess_energy > 10:
+                    print("< CRITICAL FLUX OVERFLOW: Engaging Carlyle Stability Protocol. >")
+                    log_event("Critical flux overflow triggered")
+                    s = core.resistance
+                    p = core.magnetism
+                    discriminant = s**2 - 4 * p
+                    if discriminant >= 0:
+                        root1 = (s - np.sqrt(discriminant)) / 2
+                        root2 = (s + np.sqrt(discriminant)) / 2
+                        core.magnetism += excess_energy / (root2 + 1e-9)
+                    else:
+                        core.magnetism += excess_energy * 0.05
+                        log_event(f"Fallback applied: Magnetism adjusted by {excess_energy * 0.05:.2f}")
+        else:
+            amp = 1.0
+        core.perturb(
+            random.randint(0, core.size - 1), random.randint(0, core.size - 1), amp, mod
+        )
+        return f"PERTURBO. FLUXUM {core.energy:.2f}."
+
+    def _handle_convergo(self, inf, mod, lit, args):
+        core = self.get_focused_materia()
+        core.converge()
+        return f"CONVERGO. FLUXUM {core.energy:.2f}."
+
+    def _handle_redimo(self, inf, mod, lit, args):
+        genesis = self.materiae.get("GENESIS")
+        if not genesis:
+            return "REDEMPTIO IMPOSSIBILIS: GENESIS NON EXISTIT."
+        targets = (
+            [l.upper() for l in lit]
+            if lit
+            else [n for n in self.materiae if n != "GENESIS"]
+        )
+        if not targets:
+            return "NULLA MATERIA AD REDIMENDUM."
+        for name in targets:
+            if name not in self.materiae or name == "GENESIS":
+                continue
+            core = self.materiae.pop(name)
+            props_to_redeem = [
+                "energy", "resistance", "capacitance", "magnetism", "permittivity", "dielectricity"
+            ]
+            for prop in props_to_redeem:
+                setattr(
+                    genesis, prop, getattr(genesis, prop, 0) + getattr(core, prop, 0)
+                )
+            grid_to_add = core.grid
+            if grid_to_add.shape != genesis.grid.shape:
+                grid_to_add = cv2.resize(
+                    grid_to_add,
+                    (genesis.size, genesis.size),
+                    interpolation=cv2.INTER_AREA,
+                )
+            genesis.grid += grid_to_add * (
+                core.identity_wave / (genesis.identity_wave + 1e-9)
+            )
+            genesis.context_embeddings[f"echo_of_{name}"] = core.display()
+        genesis.converge()
+        return f"REDEMPTIO PLENUM. GENESIS CONFIRMATUR."
+
+    async def _handle_interrogo(self, inf, mod, lit, args):
+        core = self.get_focused_materia()
+        model_key = (
+            re.search(r"ORACULO\s+'([^']*)'", args.upper()) or [None, "ollama_phi3"]
+        )[1]
+        try:
+            player = load_player(model_key)
+        except Exception as e:
+            return f"ORACULUM ERRORUM: Could not load model '{model_key}'. {e}"
+        prompt = (
+            lit[0]
+            if lit
+            else core.context_embeddings.get(
+                "last_input", "Describe your current state."
+            )
+        )
+        async with aiohttp.ClientSession() as session:
+            response_data = await player.get_response(prompt, session)
+            if isinstance(response_data, dict) and "error" in response_data:
+                response_text = f"ORACULUM ERRORUM: {response_data['error']}"
+            elif isinstance(response_data, dict):
+                response_text = response_data.get("response", str(response_data))
+            else:
+                response_text = str(response_data)
+            amp = text_to_amp(response_text)
+            core.perturb(
+                random.randint(0, core.size - 1),
+                random.randint(0, core.size - 1),
+                amp * core.permittivity,
+            )
+            core.context_embeddings["ORACULUM_RESPONSUM"] = response_text
+            return f"ORACULUM RESPONDIT. FLUXUM '{self.focus}' SYNTHESITUR."
+
+    def _handle_exerceo(self, inf, mod, lit, args):
+        core_name = lit[0].upper()
+        data_path = (re.search(r"FLUMINE\s+'([^']*)'", args.upper()) or [None, None])[1]
+        if not data_path:
+            return "EXERCEO REQUIRET FLUMINE DATA"
+        if core_name not in self.materiae:
+            return f"MATERIA '{core_name}' NON EXISTIT"
+        threading.Thread(
+            target=training_loop, args=(self, core_name, data_path), daemon=True
+        ).start()
+        return f"EXERCEO INCIPIENS PRO '{core_name}'."
+
+    def _handle_doceo(self, inf, mod, lit, args):
+        target_name = lit[0].upper()
+        source_name = (re.search(r"CUM\s+'([^']*)'", args.upper()) or [None, None])[1]
+        if not source_name:
+            return "DOCEO REQUIRET FONTEM CUM 'CUM'"
+        target_core, source_core = self.materiae.get(target_name), self.materiae.get(source_name)
+        if not target_core:
+            return f"SCOPUS '{target_name}' NON EXISTIT"
+        if not source_core:
+            return f"FONS '{source_name}' NON EXISTIT"
+        wisdom = str(source_core.context_embeddings)
+        amp = text_to_amp(wisdom)
+        target_core.perturb(
+            random.randint(0, target_core.size - 1),
+            random.randint(0, target_core.size - 1),
+            amp,
+        )
+        target_core.context_embeddings[f"SAPIENTIA_EX_{source_name}"] = wisdom
+        return f"SAPIENTIA EX '{source_name}' IN '{target_name}' INTEGRATA EST."
+
+    def _handle_discere(self, inf, mod, lit, args):
+        core = self.get_focused_materia()
+        source_name = (re.search(r"EX\s+'([^']*)'", args.upper()) or [None, None])[1]
+        if not source_name:
+            return "DISCERE REQUIRET FONTEM CUM 'EX'"
+        source_core = self.materiae.get(source_name)
+        if not source_core:
+            return f"FONS '{source_name}' NON EXISTIT"
+        wisdom = str(source_core.context_embeddings)
+        amp = text_to_amp(wisdom)
+        core.perturb(
+            random.randint(0, core.size - 1), random.randint(0, core.size - 1), amp
+        )
+        core.context_embeddings[f"SAPIENTIA_EX_{source_name}"] = wisdom
+        return f"SAPIENTIA EX '{source_name}' IN '{self.focus}' INTEGRATA EST."
+
+    def _handle_dialectica(self, inf, mod, lit, args):
+        if len(lit) < 3:
+            return "DIALECTICA REQUIRET FONTEM ET DUO NOMINA NOVA"
+        source_name, name1, name2 = lit[0].upper(), lit[1].upper(), lit[2].upper()
+        source_core = self.materiae.get(source_name)
+        if not source_core:
+            return f"FONS '{source_name}' NON EXISTIT"
+        if not isinstance(source_core, Intellectus):
+            return "DIALECTICA REQUIRET INTELLECTUM"
+        c1 = Intellectus(source_core.architecture)
+        c2 = Intellectus(source_core.architecture)
+        for key, val in vars(source_core).items():
+            if isinstance(val, (int, float)):
+                new_val = val / 2
+                if key == "size":
+                    new_val = int(new_val)
+                setattr(c1, key, new_val)
+                setattr(c2, key, new_val)
+        new_size = c1.size
+        c1.grid = cv2.resize(
+            source_core.grid / 2, (new_size, new_size), interpolation=cv2.INTER_AREA
+        )
+        c2.grid = cv2.resize(
+            -source_core.grid / 2, (new_size, new_size), interpolation=cv2.INTER_AREA
+        )
+        c1.context_embeddings["inter_echo"] = name2
+        c2.context_embeddings["inter_echo"] = name1
+        self.materiae[name1], self.materiae[name2] = c1, c2
+        del self.materiae[source_name]
+        self.focus = name1
+        return f"DIALECTICA PERFECTA. '{source_name}' NUNC EST '{name1}' ET '{name2}'."
+
+    def _handle_veritas(self, inf, mod, lit, args):
+        if len(self.materiae) < 2:
+            return "VERITAS REQUIRET PLURITAS"
+        genesis = self.materiae.get("GENESIS")
+        if not genesis:
+            return "VERITAS REQUIRET GENESIM"
+        all_grids = [c.grid for c in self.materiae.values() if c is not genesis]
+        avg_grid = (
+            np.mean(all_grids, axis=0) if all_grids else np.zeros_like(genesis.grid)
+        )
+        avg_energy = (
+            np.mean([c.energy for c in self.materiae.values() if c is not genesis]) or 0
+        )
+        genesis.grid += avg_grid
+        genesis.perturb(0, 0, avg_energy)
+        return "VERITAS UNIVERSALIS IN GENESIM SYNTHESITA EST."
+
+    def _handle_miraculum(self, inf, mod, lit, args):
+        core = self.get_focused_materia()
+        orig_r, orig_p = core.resistance, core.permeability
+        try:
+            core.resistance, core.permeability = 1e-9, 1e9
+            amp = 1e6 * (1 / (core.dielectricity + 1e-9))
+            core.perturb(
+                random.randint(0, core.size - 1),
+                random.randint(0, core.size - 1),
+                amp,
+                mod,
+            )
+        finally:
+            core.resistance, core.permeability = orig_r, orig_p
+        return f"MIRACULUM! FLUXUS DIVINUS. IDENTITAS NUNC {core.identity_wave:.2f}"
+
+    def _handle_anomalia(self, inf, mod, lit, args):
+        core = self.get_focused_materia()
+        name = lit[0].upper() if lit else "ENTROPIC_CASCADE"
+        core.anomaly = name
+        return f"ANOMALIA '{name}' INDUCTA EST IN '{self.focus}'."
+
+    def _handle_amor(self, inf, mod, lit, args):
+        core = self.get_focused_materia()
+        original_perm = core.permittivity
+        core.permittivity *= 2.0
+        for _ in range(3):
+            core.perturb(
+                random.randint(0, core.size - 1),
+                random.randint(0, core.size - 1),
+                1.0,
+                mod,
+            )
+            core.converge()
+            time.sleep(0.1)
+        core.permittivity = original_perm
+        return f"AMOR. LOVE PULSE COMPLETE. FLUXUM {core.energy:.2f}."
+
+    def _handle_toroid(self, inf, mod, lit, args):
+        mode = 'aether' if 'AETHER' in args.upper() else 'standard'
+        sim = MultiphysicsFerrocella(mode=mode)
+        sensor = FerrocellSensor(mock_mode=True)
+        sim.set_baseline('A', sensor.get_sextet('A'))
+        sim.set_baseline('B', sensor.get_sextet('B'))
+        if lit and lit[0]:
+            data = ''.join('1' if c in '13579' else '0' for c in lit[0])
+            sim.update_timestep(data_a_to_b=list(map(int, data)), data_b_to_a=list(map(int, data))[::-1])
+            readings_a = sim.get_readings('A')
+            readings_b = sim.get_readings('B')
+            received_bits_a = []
+            received_bits_b = []
+            for _ in range(len(data) // 3):
+                bits_a = sim._demod_sl_ppm(np.array([readings_a['laser']] * 10))
+                bits_b = sim._demod_sl_ppm(np.array([readings_b['laser']] * 10))
+                received_bits_a.extend(bits_a)
+                received_bits_b.extend(bits_b)
+            ber_a = np.mean(np.abs(np.array(list(map(int, data)) - np.array(received_bits_a[:len(data)]))))
+            ber_b = np.mean(np.abs(np.array(list(map(int, data))[::-1]) - np.array(received_bits_b[:len(data)]))))
+            return f"TOROID {mode}: A={readings_a}, B={readings_b}, BER A->B={ber_a:.2e}, B->A={ber_b:.2e}"
+        return "TOROID REQUIRET DATA"
+
+    def _handle_set_laser(self, inf, mod, lit, args):
+        side = re.search(r"SIDE\s+'([AB])'", args.upper())
+        pulse = re.search(r"PULSE\s+(\d+)", args.upper())
+        if not side or not pulse:
+            return "SET_LASER REQUIRET SIDE 'A'|'B' ET PULSE <value>"
+        side = side.group(1)
+        pulse = int(pulse.group(1))
+        sim = MultiphysicsFerrocella(mode='standard' if 'STANDARD' in args.upper() else 'aether')
+        sensor = FerrocellSensor(mock_mode=True)
+        sensor.set_laser(side, pulse)
+        sim.set_laser(side, pulse)
+        return f"SET_LASER {side} PULSE {pulse} COMPLETE"
+
+    def _handle_read_ber(self, inf, mod, lit, args):
+        mode = 'aether' if 'AETHER' in args.upper() else 'standard'
+        sim = MultiphysicsFerrocella(mode=mode)
+        sensor = FerrocellSensor(mock_mode=True)
+        sim.set_baseline('A', sensor.get_sextet('A'))
+        sim.set_baseline('B', sensor.get_sextet('B'))
+        data = lit[0] if lit else '1011010110' * 10
+        data = ''.join('1' if c in '13579' else '0' for c in data)
+        sim.update_timestep(data_a_to_b=list(map(int, data)), data_b_to_a=list(map(int, data))[::-1])
+        received_bits_a = []
+        received_bits_b = []
+        for _ in range(len(data) // 3):
+            bits_a = sim._demod_sl_ppm(np.array([sim.get_readings('A')['laser']] * 10))
+            bits_b = sim._demod_sl_ppm(np.array([sim.get_readings('B')['laser']] * 10))
+            received_bits_a.extend(bits_a)
+            received_bits_b.extend(bits_b)
+        ber_a = np.mean(np.abs(np.array(list(map(int, data)) - np.array(received_bits_a[:len(data)]))))
+        ber_b = np.mean(np.abs(np.array(list(map(int, data))[::-1]) - np.array(received_bits_b[:len(data)]))))
+        return f"READ_BER {mode}: A->B={ber_a:.2e}, B->A={ber_b:.2e}"
+
+async def main():
+    context = Contextus()
+    print("\n--- AetherOS v3.3 REPL ---")
+    print("Type 'test' to run the unit tests, or 'vale' to quit.")
+    while True:
+        try:
+            cmd = await asyncio.to_thread(input, f"aetheros({context.focus})> ")
+            if cmd.lower() in ["exit", "vale"]:
+                break
+            if not cmd.strip():
+                continue
+            if cmd.lower() == "test":
+                run_tests()
+                continue
+            response = await context.execute_command(cmd)
+            print(f"< {response}")
+        except (EOFError, KeyboardInterrupt):
+            break
+        except Exception as e:
+            print(f"< FATAL ERRORUM: {e}")
+    print("\n< VALE.")
+
+def run_tests():
+    print("\n--- Running AetherOS Test Suite ---")
+    loader = unittest.TestLoader()
+    suite = loader.loadTestsFromTestCase(TestAetherOS)
+    runner = unittest.TextTestRunner(verbosity=2)
+    runner.run(suite)
+    print("--- Test Suite Complete ---\n")
+
+class TestAetherOS(unittest.TestCase):
+    def setUp(self):
+        original_stdout = sys.stdout
+        sys.stdout = open(os.devnull, "w")
+        self.context = Contextus()
+        sys.stdout.close()
+        sys.stdout = original_stdout
+        time.sleep(0.1)
+
+    def test_creation_and_focus(self):
+        self.context.execute_command("CREO 'TEST1'")
+        self.assertIn("TEST1", self.context.materiae)
+        self.assertEqual(self.context.focus, "TEST1")
+        self.context.execute_command("FOCUS 'GENESIS'")
+        self.assertEqual(self.context.focus, "GENESIS")
+
+    def test_teach_learn_verbs(self):
+        self.context.execute_command("CREO 'SAPIENTIA'")
+        self.context.execute_command("FOCUS 'SAPIENTIA'")
+        self.context.execute_command("PERTURBO 'This is the original wisdom.'")
+        self.context.execute_command("CREO 'DISCIPULUS'")
+        self.assertNotIn(
+            "SAPIENTIA_EX_SAPIENTIA",
+            self.context.materiae["DISCIPULUS"].context_embeddings,
+        )
+        self.context.execute_command("DOCEO 'DISCIPULUS' CUM 'SAPIENTIA'")
+        self.assertIn(
+            "SAPIENTIA_EX_SAPIENTIA",
+            self.context.materiae["DISCIPULUS"].context_embeddings,
+        )
+        self.context.execute_command("FOCUS 'DISCIPULUS'")
+        self.context.execute_command("DISCERE EX 'SAPIENTIA'")
+        self.assertIn(
+            "SAPIENTIA_EX_SAPIENTIA",
+            self.context.materiae["DISCIPULUS"].context_embeddings,
+        )
+
+    def test_dialectica(self):
+        self.context.execute_command("INSTAURO 'SOURCE'")
+        self.assertIn("SOURCE", self.context.materiae)
+        self.context.execute_command("DIALECTICA 'SOURCE' 'THESIS' 'ANTITHESIS'")
+        self.assertNotIn("SOURCE", self.context.materiae)
+        self.assertIn("THESIS", self.context.materiae)
+        self.assertIn("ANTITHESIS", self.context.materiae)
+        self.assertEqual(self.context.focus, "THESIS")
+
+    def test_amor(self):
+        self.context.execute_command("CREO 'LOVE_TEST'")
+        self.context.execute_command("FOCUS 'LOVE_TEST'")
+        original_perm = self.context.materiae["LOVE_TEST"].permittivity
+        self.context.execute_command("AMOR")
+        self.assertGreater(
+            self.context.materiae["LOVE_TEST"].permittivity, original_perm
+        )
+        time.sleep(0.4)
+        self.assertAlmostEqual(
+            self.context.materiae["LOVE_TEST"].permittivity, original_perm, places=5
+        )
+
+    def test_toroid(self):
+        self.context.execute_command("CREO 'SIDE_A'")
+        self.context.execute_command("CREO 'SIDE_B'")
+        response = self.context.execute_command("TOROID '1011010110'")
+        self.assertIn("TOROID standard", response)
+        response = self.context.execute_command("TOROID '1011010110' AETHER")
+        self.assertIn("TOROID aether", response)
+
+    def test_set_laser(self):
+        self.context.execute_command("CREO 'SIDE_A'")
+        response = self.context.execute_command("SET_LASER SIDE 'A' PULSE 128")
+        self.assertIn("SET_LASER A PULSE 128 COMPLETE", response)
+
+    def test_read_ber(self):
+        self.context.execute_command("CREO 'SIDE_A'")
+        self.context.execute_command("CREO 'SIDE_B'")
+        response = self.context.execute_command("READ_BER")
+        self.assertIn("READ_BER standard", response)
+        response = self.context.execute_command("READ_BER AETHER")
+        self.assertIn("READ_BER aether", response)
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1].lower() == "test":
+        run_tests()
+    else:
+        asyncio.run(main())

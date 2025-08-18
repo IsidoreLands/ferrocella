@@ -1,0 +1,46 @@
+{
+  "ARC_Gnosis": {
+    "type": "hrm",
+    "class": "ARCPlayer",
+    "model_path": "models/hrm_checkpoints/ARC_Gnosis.pth",
+    "input_dim": 400,
+    "hidden_dim": 384,
+    "output_dim": 2
+  },
+  "ARC": {
+    "type": "hrm",
+    "class": "ARCPlayer",
+    "model_path": "models/hrm_checkpoints/ARC.pth",
+    "input_dim": 400,
+    "hidden_dim": 384,
+    "output_dim": 2
+  },
+  "hf_phi3": {
+    "type": "hf",
+    "class": "HuggingFacePlayer",
+    "model_name": "microsoft/Phi-3-mini-4k-instruct"
+  },
+  "ollama_codegemma": {
+    "type": "ollama",
+    "class": "OllamaPlayer",
+    "model_name": "codegemma",
+    "endpoint": "http://localhost:11434/api/generate"
+  },
+  "ollama_gemma2b": {
+    "type": "ollama",
+    "class": "OllamaPlayer",
+    "model_name": "gemma:2b",
+    "endpoint": "http://localhost:11434/api/generate"
+  },
+  "ollama_phi3": {
+    "type": "ollama",
+    "class": "OllamaPlayer",
+    "model_name": "phi3",
+    "endpoint": "http://localhost:11434/api/generate"
+  },
+  "gemini_flash": {
+    "type": "gemini",
+    "class": "GeminiPlayer",
+    "model_name": "gemini-1.5-flash-latest"
+  }
+}
