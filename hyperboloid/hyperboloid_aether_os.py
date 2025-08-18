@@ -10,7 +10,7 @@ import cv2
 import asyncio
 import aiohttp
 from hyperboloid_flux_core import FluxCore, Intellectus
-from hyperboloid_core import MultiphysicsFerrocella
+from simulation.hyperboloid_core import MultiphysicsFerrocella
 from hyperboloid_sensor_hook import FerrocellSensor
 from experiri.model_loader import load_player
 
@@ -20,7 +20,6 @@ KNOWN_VERBS = [
     "EXERCEO", "DIALECTICA", "DOCEO", "DISCERE", "AMOR", "TOROID",
     "SET_LASER", "READ_BER"
 ]
-# ... (rest of the file unchanged, provided for completeness)
 KNOWN_INFLECTIONS = ["ABAM", "EBAM", "AM", "O", "E"]
 inflection_map = {
     "O": {"mod": 1.0}, "E": {"mod": -1.0}, "ABAM": {"mod": 1.5},
@@ -617,7 +616,4 @@ class TestAetherOS(unittest.TestCase):
         self.assertIn("READ_BER aether", response)
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1].lower() == "test":
-        run_tests()
-    else:
-        asyncio.run(main())
+    unittest.main()

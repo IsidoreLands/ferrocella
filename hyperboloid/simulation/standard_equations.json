@@ -1,0 +1,60 @@
+[
+  {
+    "name": "Biot-Savart Law",
+    "formula": "B = (μ_0 * I * N) / (4 * π) * ∫(dl × r̂) / r^2",
+    "variables": {
+      "B": {"description": "Magnetic field strength", "unit": "T"},
+      "μ_0": {"description": "Permeability of free space", "unit": "H/m", "value": 4e-7 * 3.14159265359},
+      "I": {"description": "Current", "unit": "A"},
+      "N": {"description": "Number of turns", "unit": "dimensionless"},
+      "dl": {"description": "Differential length element", "unit": "m"},
+      "r": {"description": "Distance to field point", "unit": "m"},
+      "r̂": {"description": "Unit vector to field point", "unit": "dimensionless"}
+    },
+    "description": "Calculates magnetic field B at a point due to current I in N turns of a conductor."
+  },
+  {
+    "name": "Beer-Lambert Law",
+    "formula": "I_out = I_in * exp(-α * L)",
+    "variables": {
+      "I_out": {"description": "Output intensity", "unit": "W/m^2"},
+      "I_in": {"description": "Input intensity", "unit": "W/m^2"},
+      "α": {"description": "Absorption coefficient", "unit": "1/m"},
+      "L": {"description": "Path length", "unit": "m"}
+    },
+    "description": "Describes attenuation of laser intensity through turbid ferrofluid."
+  },
+  {
+    "name": "Faraday Effect",
+    "formula": "θ = V * B * L",
+    "variables": {
+      "θ": {"description": "Rotation angle of polarization", "unit": "rad"},
+      "V": {"description": "Verdet constant", "unit": "rad/(T*m)"},
+      "B": {"description": "Magnetic field strength", "unit": "T"},
+      "L": {"description": "Path length", "unit": "m"}
+    },
+    "description": "Rotation of light polarization due to magnetic field in ferrofluid."
+  },
+  {
+    "name": "Inductance of Toroid",
+    "formula": "L_ind = (μ_0 * N^2 * A) / l",
+    "variables": {
+      "L_ind": {"description": "Inductance", "unit": "H"},
+      "μ_0": {"description": "Permeability of free space", "unit": "H/m", "value": 4e-7 * 3.14159265359},
+      "N": {"description": "Number of turns", "unit": "dimensionless"},
+      "A": {"description": "Cross-sectional area", "unit": "m^2"},
+      "l": {"description": "Mean magnetic path length", "unit": "m"}
+    },
+    "description": "Calculates inductance of the toroidal double helix."
+  },
+  {
+    "name": "Bit Error Rate (BER)",
+    "formula": "BER = mean(abs(data_sent - data_received))",
+    "variables": {
+      "BER": {"description": "Bit error rate", "unit": "dimensionless"},
+      "data_sent": {"description": "Transmitted bits", "unit": "dimensionless"},
+      "data_received": {"description": "Received bits", "unit": "dimensionless"}
+    },
+    "description": "Measures error rate in SL-PPM communication."
+  }
+]

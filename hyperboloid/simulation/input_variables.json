@@ -1,0 +1,13 @@
+{
+  "variables": [
+    {"name": "I", "value": 0.5, "unit": "A"},
+    {"name": "N", "value": 50, "unit": "dimensionless"},
+    {"name": "r", "value": 0.1, "unit": "m"},
+    {"name": "I_in", "value": 1.0, "unit": "W/m^2"},
+    {"name": "α", "value": 0.1, "unit": "1/m"},
+    {"name": "L", "value": 0.02, "unit": "m"},
+    {"name": "V", "value": 0.01, "unit": "rad/(T*m)"},
+    {"name": "A", "value": 3.14159e-4, "unit": "m^2"},
+    {"name": "l", "value": 0.62832, "unit": "m"}
+  ]
+}

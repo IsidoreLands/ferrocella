@@ -1,0 +1,76 @@
+[
+  {
+    "name": "Aether Flux Field",
+    "formula": "B_aether = (μ_0 * I * N) / (4 * π * φ) * ∫(dl × r̂) / r^2",
+    "variables": {
+      "B_aether": {"description": "Aether flux field strength", "unit": "T"},
+      "μ_0": {"description": "Permeability of aether medium", "unit": "H/m", "value": 4e-7 * 3.14159265359},
+      "I": {"description": "Current", "unit": "A"},
+      "N": {"description": "Number of turns", "unit": "dimensionless"},
+      "φ": {"description": "Golden ratio", "unit": "dimensionless", "value": 1.61803398875},
+      "dl": {"description": "Differential length element", "unit": "m"},
+      "r": {"description": "Distance to field point", "unit": "m"},
+      "r̂": {"description": "Unit vector to field point", "unit": "dimensionless"}
+    },
+    "description": "Biot-Savart modified with Phi ratio scaling for aether flux dynamics."
+  },
+  {
+    "name": "Aether Coaxial Transmission",
+    "formula": "I_out = I_in * exp(-α / φ * L) * (1 + 0.1 / (1 + exp(-B_aether / φ^3)))",
+    "variables": {
+      "I_out": {"description": "Output intensity", "unit": "W/m^2"},
+      "I_in": {"description": "Input intensity", "unit": "W/m^2"},
+      "α": {"description": "Absorption coefficient", "unit": "1/m"},
+      "φ": {"description": "Golden ratio", "unit": "dimensionless", "value": 1.61803398875},
+      "L": {"description": "Path length", "unit": "m"},
+      "B_aether": {"description": "Aether flux field strength", "unit": "T"}
+    },
+    "description": "Beer-Lambert modified with Phi scaling and dielectric flux term."
+  },
+  {
+    "name": "Aether Polarization",
+    "formula": "θ = V * B_aether * L / φ",
+    "variables": {
+      "θ": {"description": "Rotation angle of polarization", "unit": "rad"},
+      "V": {"description": "Aether Verdet constant", "unit": "rad/(T*m)"},
+      "B_aether": {"description": "Aether flux field strength", "unit": "T"},
+      "L": {"description": "Path length", "unit": "m"},
+      "φ": {"description": "Golden ratio", "unit": "dimensionless", "value": 1.61803398875}
+    },
+    "description": "Faraday effect adjusted with Phi scaling for aether medium."
+  },
+  {
+    "name": "Aether Inductance",
+    "formula": "L_ind = (μ_0 * N^2 * A * φ) / l",
+    "variables": {
+      "L_ind": {"description": "Inductance", "unit": "H"},
+      "μ_0": {"description": "Permeability of aether medium", "unit": "H/m", "value": 4e-7 * 3.14159265359},
+      "N": {"description": "Number of turns", "unit": "dimensionless"},
+      "A": {"description": "Cross-sectional area", "unit": "m^2"},
+      "l": {"description": "Mean magnetic path length", "unit": "m"},
+      "φ": {"description": "Golden ratio", "unit": "dimensionless", "value": 1.61803398875}
+    },
+    "description": "Toroid inductance enhanced by Phi ratio."
+  },
+  {
+    "name": "Aether Bit Error Rate",
+    "formula": "BER = mean(abs(data_sent - data_received))",
+    "variables": {
+      "BER": {"description": "Bit error rate", "unit": "dimensionless"},
+      "data_sent": {"description": "Transmitted bits", "unit": "dimensionless"},
+      "data_received": {"description": "Received bits", "unit": "dimensionless"}
+    },
+    "description": "Identical to standard BER, as aether model does not modify digital error calculation."
+  },
+  {
+    "name": "Dielectric Acceleration",
+    "formula": "a_d = (φ * ρ_aether) / (1 + exp(-B_aether / φ^3))",
+    "variables": {
+      "a_d": {"description": "Dielectric acceleration", "unit": "m/s^2"},
+      "φ": {"description": "Golden ratio", "unit": "dimensionless", "value": 1.61803398875},
+      "ρ_aether": {"description": "Aether density", "unit": "kg/m^3"},
+      "B_aether": {"description": "Aether flux field strength", "unit": "T"}
+    },
+    "description": "No standard equivalent; models gravity as dielectric acceleration in aether."
+  }
+]
