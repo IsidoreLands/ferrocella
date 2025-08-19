@@ -4,7 +4,6 @@ import warnings
 import time
 import jax
 import jax.numpy as jnp
-import jax.extend.backend as xb
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
