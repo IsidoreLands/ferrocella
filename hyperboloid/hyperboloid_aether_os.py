@@ -467,8 +467,8 @@ class Contextus:
                 bits_b = sim._demod_sl_ppm(np.array([readings_b['laser']] * 10))
                 received_bits_a.extend(bits_a)
                 received_bits_b.extend(bits_b)
-            ber_a = np.mean(np.abs(np.array(list(map(int, data)) - np.array(received_bits_a[:len(data)]))))
-            ber_b = np.mean(np.abs(np.array(list(map(int, data))[::-1]) - np.array(received_bits_b[:len(data)]))))
+            ber_a = np.mean(np.abs(np.array(list(map(int, data)) - np.array(received_bits_a[:len(data)])))
+            ber_b = np.mean(np.abs(np.array(list(map(int, data))[::-1]) - np.array(received_bits_b[:len(data)])))
             return f"TOROID {mode}: A={readings_a}, B={readings_b}, BER A->B={ber_a:.2e}, B->A={ber_b:.2e}"
         return "TOROID REQUIRET DATA"
 
